@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Flame, Plus, Filter, Trash2, Tag, Calendar, Layers, Search, RefreshCw } from 'lucide-react';
 import api from '../services/api';
 import EmissionModal from '../components/EmissionModal';
+import { getCombinedLogs } from '../utils/emissionsStorage';
 
-const DEFAULT_LOGS = [
+const BASE_LOGS = [
   { id: 1, date: '2026-03-01', category: 'Electricity', scope: 'Scope 2', quantity: 45000, unit: 'kWh', co2e_kg: 17325, notes: 'HVAC cooling tower load peak' },
   { id: 2, date: '2026-04-01', category: 'Electricity', scope: 'Scope 2', quantity: 42000, unit: 'kWh', co2e_kg: 16170, notes: 'Smart thermostat trial started' },
   { id: 3, date: '2026-05-01', category: 'Electricity', scope: 'Scope 2', quantity: 38500, unit: 'kWh', co2e_kg: 14822, notes: 'Rooftop solar panel Phase 1 active' },
@@ -21,7 +22,7 @@ const DEFAULT_LOGS = [
 ];
 
 export default function EmissionsTracker() {
-  const [logs, setLogs] = useState(DEFAULT_LOGS);
+  const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedScope, setSelectedScope] = useState('');
@@ -29,6 +30,7 @@ export default function EmissionsTracker() {
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchLogs = async () => {
+    let baseLogs = BASE_LOGS;
     try {
       let url = '/emissions/logs?';
       if (selectedCategory) url += `category=${encodeURIComponent(selectedCategory)}&`;
@@ -36,11 +38,12 @@ export default function EmissionsTracker() {
 
       const res = await api.get(url);
       if (res.data?.logs?.length) {
-        setLogs(res.data.logs);
+        baseLogs = res.data.logs;
       }
     } catch (err) {
-      console.warn('Emissions tracker using built-in log ledger state:', err);
+      console.warn('Emissions tracker network fallback, using combined logs:', err);
     }
+    setLogs(getCombinedLogs(baseLogs));
   };
 
   useEffect(() => {
@@ -55,6 +58,11 @@ export default function EmissionsTracker() {
       console.warn('Delete via API failed, removing locally:', err);
     } finally {
       setLogs(prev => prev.filter(l => l.id !== id));
+      try {
+        const stored = JSON.parse(localStorage.getItem('ecometrics_custom_logs') || '[]');
+        const updated = stored.filter(l => l.id !== id);
+        localStorage.setItem('ecometrics_custom_logs', JSON.stringify(updated));
+      } catch (e) {}
     }
   };
 
