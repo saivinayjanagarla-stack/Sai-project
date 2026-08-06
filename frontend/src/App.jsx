@@ -24,6 +24,7 @@ const pageVariants = {
 function ProtectedLayout() {
   const { user, loading } = useAuth();
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
+  const [isSidebarPinned, setIsSidebarPinned] = useState(false);
   const location = useLocation();
 
   if (loading) {
@@ -46,10 +47,15 @@ function ProtectedLayout() {
       <Navbar onOpenNotifications={() => setIsNotificationsOpen(true)} />
       
       <div className="flex flex-1 relative">
-        <Sidebar />
+        <Sidebar 
+          isPinned={isSidebarPinned} 
+          onTogglePin={() => setIsSidebarPinned(!isSidebarPinned)} 
+        />
         
-        {/* Main Content Area with Framer Motion Page Transitions */}
-        <main className="flex-1 p-4 md:p-6 md:pl-24 max-w-7xl mx-auto w-full transition-all overflow-hidden">
+        {/* Main Content Area with dynamic margin padding for sidebar state */}
+        <main className={`flex-1 p-4 md:p-6 transition-all duration-300 ease-in-out max-w-7xl mx-auto w-full overflow-hidden ${
+          isSidebarPinned ? 'md:pl-80' : 'md:pl-24'
+        }`}>
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
