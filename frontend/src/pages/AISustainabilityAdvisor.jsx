@@ -1,96 +1,144 @@
-import React, { useState } from 'react';
-import { Bot, Sparkles, Send, FileText, Zap, HelpCircle, ArrowRight, CheckCircle2 } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { 
+  Bot, 
+  Sparkles, 
+  Send, 
+  FileText, 
+  Zap, 
+  Mic, 
+  Paperclip, 
+  Plus, 
+  Copy, 
+  Check, 
+  Trash2, 
+  Clock, 
+  BarChart3, 
+  ChevronRight, 
+  Sun, 
+  AlertTriangle, 
+  TrendingDown, 
+  ShieldCheck,
+  RefreshCw,
+  Cpu,
+  RotateCcw,
+  Sliders,
+  HelpCircle,
+  FileCheck
+} from 'lucide-react';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, BarChart, Bar } from 'recharts';
 import api from '../services/api';
 
-const generateFallbackAuditReport = (category, currentUsage, unit, buildingAreaSqFt, renewablePct) => {
-  const usage = Number(currentUsage) || 45000;
-  const area = Number(buildingAreaSqFt) || 50000;
-  const renew = Number(renewablePct) || 25;
+const INLINE_CHART_DATA = [
+  { month: 'Jan', baseline: 120, optimized: 105 },
+  { month: 'Feb', baseline: 115, optimized: 98 },
+  { month: 'Mar', baseline: 110, optimized: 88 },
+  { month: 'Apr', baseline: 105, optimized: 82 },
+  { month: 'May', baseline: 100, optimized: 75 },
+  { month: 'Jun', baseline: 95, optimized: 68 },
+];
 
-  const annualUsage = usage * 12;
-  const annualCo2eTonnes = (annualUsage * 0.385 / 1000).toFixed(1);
-  const potentialSavingsPct = 22;
-  const savedCo2eTonnes = (annualCo2eTonnes * (potentialSavingsPct / 100)).toFixed(1);
-  const energyIntensityEUI = (annualUsage / area).toFixed(1);
-
-  return `🌿 EXECUTIVE AI DECARBONIZATION & ENERGY AUDIT ROADMAP
-================================================================
-
-📍 Facility Baseline Profile:
-  • Primary Resource Category: ${category} (Scope 2 Operations)
-  • Monthly Consumption: ${usage.toLocaleString()} ${unit} (${annualUsage.toLocaleString()} ${unit}/year)
-  • Gross Internal Area: ${area.toLocaleString()} sq ft
-  • Current Renewable Energy Adoption: ${renew}% (Grid / Solar PV)
-  • Building EUI Metric: ${energyIntensityEUI} ${unit}/sq ft/yr
-  • Estimated Annual Carbon Footprint: ${annualCo2eTonnes} Metric Tonnes CO2e
-
-----------------------------------------------------------------
-💡 AI OPTIMIZATION & DECARBONIZATION STRATEGY RECOMMENDATIONS
-----------------------------------------------------------------
-
-1. High-Efficiency HVAC & Variable Frequency Drive (VFD) Retrofit:
-   • Intervention: Install digital twin sensors & VFD speed control on secondary chilled water pumps.
-   • Projected Reduction: 14% reduction in peak electrical demand (${Math.round(annualUsage * 0.14).toLocaleString()} ${unit}/year).
-   • Capital Expenditure (CapEx): ~$18,500
-   • Estimated Payback Period: 1.4 Years
-
-2. Rooftop Solar PV & Local Battery Energy Storage System (BESS):
-   • Intervention: Expand renewable capacity by +35% with a 120 kW solar array to mitigate peak-hour tariff rates.
-   • Renewable Share Shift: Increases renewable adoption from ${renew}% to ${Math.min(100, renew + 35)}%.
-   • Annual Carbon Offset: ${savedCo2eTonnes} Tonnes CO2e avoided annually.
-   • Estimated Payback Period: 3.8 Years (including IRA tax credits).
-
-3. Occupancy-Based Smart Lighting & Night Setback Schedules:
-   • Intervention: Deploy automated BACnet integration for automated 10°F night temperature setback during unoccupied hours.
-   • Energy Reduction: 8% overall base load reduction (${Math.round(annualUsage * 0.08).toLocaleString()} ${unit}/year).
-
-----------------------------------------------------------------
-📊 FINANCIAL & COMPLIANCE SUMMARY
-----------------------------------------------------------------
-  • Total Estimated Capital Investment: $42,000
-  • Total Annual Energy Cost Savings: ~$14,200 / year
-  • Simple Payback Period: 2.9 Years
-  • GHG Protocol Compliance Rating: Tier A (Verified Audit Candidate)`;
-};
+const INITIAL_CONVERSATIONS = [
+  { id: '1', title: 'HVAC Chiller Optimization Plan', date: 'Today' },
+  { id: '2', title: '250 kW Solar PV & Storage ROI', date: 'Yesterday' },
+  { id: '3', title: 'Scope 3 Supply Chain Audit', date: '3 days ago' },
+  { id: '4', title: 'Zero-Waste Campus Roadmap', date: '1 week ago' },
+];
 
 const getFallbackChatResponse = (userQuery) => {
   const q = userQuery.toLowerCase();
+  
   if (q.includes('hvac') || q.includes('chiller') || q.includes('cooling')) {
-    return `To optimize commercial HVAC chillers for ~20% energy savings:
+    return {
+      text: `### ⚡ HVAC Chiller Energy Optimization Blueprint
 
-1. **Raise Chilled Water Supply Temperature**: Increasing chilled water temperature by 1°F improves chiller efficiency by ~1.5%.
-2. **Variable Frequency Drives (VFDs)**: Retrofit VFDs on cooling tower fans and condenser pumps to match part-load demand.
-3. **Automated Night Setback**: Program BACnet controllers to raise unoccupied space setpoints by 6-10°F.
-4. **Condenser Tube Cleaning**: Descale heat exchanger tubes every 6 months to eliminate foul thermal resistance.`;
+Based on GHG Protocol Scope 2 accounting and ASHRAE Guideline 36, here are the high-ROI steps to achieve **~20% energy savings**:
+
+1. **Raise Chilled Water Supply Temperature**:
+   - Increasing chilled water supply temperature by **1°F** improves chiller COP efficiency by **~1.5%**.
+2. **Variable Frequency Drives (VFDs)**:
+   - Retrofit VFDs on secondary pumps and cooling tower fans to match part-load demand.
+3. **Automated Night Setback**:
+   - Program BACnet controllers to raise unoccupied space setpoints by **6–10°F**.
+
+\`\`\`json
+{
+  "projected_savings_usd": "$4,250 / month",
+  "carbon_reduction_tonnes": "-8.4 t CO2e / mo",
+  "payback_period_years": 1.4
+}
+\`\`\`
+
+Here is the projected **Baseline vs Optimized Decarbonization Trajectory**:`,
+      hasChart: true
+    };
   }
 
   if (q.includes('solar') || q.includes('payback') || q.includes('pv')) {
-    return `For a **250 kW Commercial Solar PV System** with a 100 kWh BESS:
+    return {
+      text: `### ☀️ 250 kW Commercial Solar PV + Battery Storage Financial ROI
 
-• **Estimated Upfront CapEx**: ~$280,000 - $320,000
-• **Federal Tax Incentives (IRA)**: 30% Investment Tax Credit (ITC) = -$90,000 net savings.
-• **Annual Electricity Offset**: ~365,000 kWh/year (~$43,800/yr at $0.12/kWh).
-• **Net Payback Period**: **3.9 to 4.5 Years**, with a 25-year system warranty and IRR of 18.4%.`;
+Analysis of your facility rooftop solar microgrid potential:
+
+- **Upfront CapEx**: ~$280,000 – $320,000
+- **IRA Investment Tax Credit (ITC)**: **30% Tax Credit** (-$90,000 net offset)
+- **Annual Electricity Offset**: ~365,000 kWh/year (~$43,800/yr savings at $0.12/kWh)
+- **Simple Payback Period**: **3.9 to 4.5 Years**
+
+\`\`\`bash
+# IRA Clean Energy Tax Credit Verification Code
+VERIFY --facility "HQ Building A" --array-size 250kw --itc-rate 0.30
+\`\`\`
+
+Recommended Next Action: Proceed to **Net-Zero Simulator** to run multi-variable CapEx projections.`,
+      hasChart: false
+    };
   }
 
   if (q.includes('scope 3') || q.includes('supply chain')) {
-    return `To effectively track **Scope 3 Supply Chain Emissions**:
+    return {
+      text: `### 🚚 Scope 3 Value Chain Carbon Accounting Protocol
 
-1. **Procurement Spend Analysis**: Categorize vendor spend using EEIO (Environmentally Extended Input-Output) emission factors.
-2. **Primary Supplier Engagement**: Request key Tier-1 suppliers to submit CDP or ISO 14064 verified Scope 1 & 2 figures.
-3. **Logistics Optimization**: Shift high-volume freight from air cargo to rail/maritime freight to cut transport intensity by up to 80%.`;
+To audit and reduce Scope 3 procurement emissions across Tier-1 vendors:
+
+1. **EEIO Spend Analysis**: Categorize vendor spend using Environmentally Extended Input-Output factors.
+2. **Supplier Data Engagement**: Request primary Scope 1 & 2 disclosures via CDP or ISO 14064 certification.
+3. **Freight Mode Shift**: Transition high-volume logistics from air cargo to maritime/rail freight to cut emission intensity by up to **80%**.`,
+      hasChart: false
+    };
   }
 
-  return `Based on GHG Protocol Corporate Accounting Standards and ISO 50001 guidance:
+  return {
+    text: `### 🌿 Decarbonization Strategy Recommendation
 
-To achieve accelerated decarbonization for your facility:
-• **Measure**: Establish real-time Scope 1 (Direct Gas), Scope 2 (Grid Electricity), and Scope 3 (Supply Chain) baselines.
-• **Reduce**: Implement zero-cost operational controls (HVAC setback, LED retrofits, peak demand shaving).
-• **Replace**: Transition remaining fuel loads to solar PV microgrids, heat pumps, and green power purchase agreements (PPAs).`;
+Based on your active telemetry profile and ISO 50001 energy management standards:
+
+- **Measure**: Real-time IoT monitoring across Scope 1 (Gas), Scope 2 (Grid Electricity), and Scope 3 (Supply Chain).
+- **Reduce**: Zero-cost operational controls (HVAC setback, LED retrofits, peak demand shaving).
+- **Replace**: Shift remaining fuel baseline to rooftop solar PV arrays and green power purchase agreements (PPAs).`,
+    hasChart: false
+  };
 };
 
 export default function AISustainabilityAdvisor() {
-  const [activeTab, setActiveTab] = useState('audit'); // 'audit' or 'chat'
+  const [conversations, setConversations] = useState(INITIAL_CONVERSATIONS);
+  const [activeConvId, setActiveConvId] = useState('1');
+  const [activeTab, setActiveTab] = useState('chat'); // 'chat' or 'audit'
+
+  // Chat Messages State
+  const [messages, setMessages] = useState([
+    {
+      id: 'm1',
+      sender: 'ai',
+      text: "Hello Sarah! I am **EcoMetrics Gemini AI Copilot**, your virtual Sustainability & Energy Engineering Advisor. How can I assist with your decarbonization strategy, ISO 50001 audit, or Scope 1-3 accounting today?",
+      time: 'Just now'
+    }
+  ]);
+  const [inputMessage, setInputMessage] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [attachedFile, setAttachedFile] = useState(null);
+  const [copiedId, setCopiedId] = useState(null);
+  const messagesEndRef = useRef(null);
 
   // Audit Form State
   const [category, setCategory] = useState('Electricity');
@@ -102,16 +150,103 @@ export default function AISustainabilityAdvisor() {
   const [auditResult, setAuditResult] = useState('');
   const [auditLoading, setAuditLoading] = useState(false);
 
-  // Chat Console State
-  const [messages, setMessages] = useState([
-    {
-      sender: 'ai',
-      text: 'Hello! I am **EcoMetrics Gemini AI**, your virtual Sustainability & Energy Engineering Advisor. How can I assist you with carbon accounting, ISO 50001 energy audits, or renewable transitions today?'
-    }
-  ]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [chatLoading, setChatLoading] = useState(false);
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, chatLoading]);
+
+  // Handle Send Message
+  const handleSendMessage = async (textToSend) => {
+    const query = textToSend || inputMessage;
+    if (!query.trim() && !attachedFile) return;
+
+    const userMsg = {
+      id: Date.now().toString(),
+      sender: 'user',
+      text: query + (attachedFile ? `\n\n📎 Attached File: ${attachedFile.name}` : ''),
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+
+    const newMessages = [...messages, userMsg];
+    setMessages(newMessages);
+    if (!textToSend) setInputMessage('');
+    setAttachedFile(null);
+    setChatLoading(true);
+
+    try {
+      const res = await api.post('/ai/chat', { message: query, history: newMessages });
+      if (res.data?.reply) {
+        setMessages([
+          ...newMessages,
+          {
+            id: (Date.now() + 1).toString(),
+            sender: 'ai',
+            text: res.data.reply,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+            hasChart: query.toLowerCase().includes('hvac') || query.toLowerCase().includes('chiller')
+          }
+        ]);
+      } else {
+        const fallback = getFallbackChatResponse(query);
+        setMessages([
+          ...newMessages,
+          {
+            id: (Date.now() + 1).toString(),
+            sender: 'ai',
+            text: fallback.text,
+            hasChart: fallback.hasChart,
+            time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }
+        ]);
+      }
+    } catch (err) {
+      console.warn('AI Chat network fallback:', err);
+      const fallback = getFallbackChatResponse(query);
+      setMessages([
+        ...newMessages,
+        {
+          id: (Date.now() + 1).toString(),
+          sender: 'ai',
+          text: fallback.text,
+          hasChart: fallback.hasChart,
+          time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }
+      ]);
+    } finally {
+      setChatLoading(false);
+    }
+  };
+
+  // Voice Input Simulation Toggle
+  const toggleVoiceInput = () => {
+    setIsRecording(!isRecording);
+    if (!isRecording) {
+      setTimeout(() => {
+        setInputMessage("How do I optimize commercial HVAC chillers for 20% energy savings?");
+        setIsRecording(false);
+      }, 2500);
+    }
+  };
+
+  // File Upload Simulation
+  const handleFileUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setAttachedFile(file);
+    }
+  };
+
+  // Copy text to clipboard
+  const handleCopy = (text, id) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
+  };
+
+  // Generate Audit Plan
   const handleGenerateAudit = async (e) => {
     e.preventDefault();
     setAuditLoading(true);
@@ -128,95 +263,315 @@ export default function AISustainabilityAdvisor() {
       if (res.data?.report) {
         setAuditResult(res.data.report);
       } else {
-        setAuditResult(generateFallbackAuditReport(category, currentUsage, unit, buildingAreaSqFt, renewablePct));
+        setAuditResult(`🌿 EXECUTIVE AI DECARBONIZATION AUDIT ROADMAP
+================================================================
+📍 Baseline: ${category} (${currentUsage} ${unit}/mo across ${buildingAreaSqFt} sq ft)
+💡 Recommendation: Install digital twin sensors & VFD speed control on secondary pumps.
+📊 Financial ROI: CapEx $18,500 | OpEx Savings $14,200/yr | Payback 1.4 Years.`);
       }
     } catch (err) {
-      console.warn('AI Audit network call fallback:', err);
-      setAuditResult(generateFallbackAuditReport(category, currentUsage, unit, buildingAreaSqFt, renewablePct));
+      setAuditResult(`🌿 EXECUTIVE AI DECARBONIZATION AUDIT ROADMAP
+================================================================
+📍 Baseline: ${category} (${currentUsage} ${unit}/mo across ${buildingAreaSqFt} sq ft)
+💡 Recommendation: Install digital twin sensors & VFD speed control on secondary pumps.
+📊 Financial ROI: CapEx $18,500 | OpEx Savings $14,200/yr | Payback 1.4 Years.`);
     } finally {
       setAuditLoading(false);
     }
   };
 
-  const handleSendMessage = async (textToSend) => {
-    const query = textToSend || inputMessage;
-    if (!query.trim()) return;
-
-    const newMessages = [...messages, { sender: 'user', text: query }];
-    setMessages(newMessages);
-    if (!textToSend) setInputMessage('');
-    setChatLoading(true);
-
-    try {
-      const res = await api.post('/ai/chat', { message: query, history: newMessages });
-      if (res.data?.reply) {
-        setMessages([...newMessages, { sender: 'ai', text: res.data.reply }]);
-      } else {
-        setMessages([...newMessages, { sender: 'ai', text: getFallbackChatResponse(query) }]);
-      }
-    } catch (err) {
-      console.warn('AI Chat network call fallback:', err);
-      setMessages([...newMessages, { sender: 'ai', text: getFallbackChatResponse(query) }]);
-    } finally {
-      setChatLoading(false);
-    }
-  };
-
   const quickPrompts = [
-    'How do I optimize commercial HVAC chillers for 20% energy savings?',
-    'What is the payback period for 250 kW solar PV with battery storage?',
-    'How to track Scope 3 emissions for corporate supply chain procurement?',
-    'What are the key steps for zero-waste campus certification?'
+    { title: '⚡ Optimize HVAC Chillers', prompt: 'How do I optimize commercial HVAC chillers for 20% energy savings?' },
+    { title: '☀️ Solar PV + Storage ROI', prompt: 'What is the payback period for 250 kW solar PV with battery storage?' },
+    { title: '🚚 Scope 3 Supply Chain', prompt: 'How to track Scope 3 emissions for corporate supply chain procurement?' },
+    { title: '📄 Zero-Waste Audit', prompt: 'What are the key steps for zero-waste campus certification?' }
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-slate-900/60 p-6 rounded-2xl border border-slate-800">
+    <div className="space-y-6 pb-12">
+      {/* 🚀 Header Banner */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-glass">
         <div>
-          <div className="flex items-center space-x-2 text-xs font-bold text-eco-400 uppercase tracking-wider">
-            <Sparkles className="w-4 h-4" /> Powered by Google Gemini AI
+          <div className="flex items-center space-x-2 text-xs font-bold text-emerald-600 uppercase tracking-wider">
+            <Sparkles className="w-4 h-4 text-emerald-600 animate-spin" />
+            <span>Google Gemini AI Copilot Active</span>
           </div>
-          <h1 className="text-2xl font-extrabold text-white mt-1">AI Decarbonization Advisor & Eco-Chat</h1>
-          <p className="text-xs text-slate-400 mt-1">Generate facility-specific decarbonization plans or consult with our domain-trained AI Assistant.</p>
+          <h1 className="text-2xl font-black text-slate-900 mt-1">✨ EcoMetrics AI Copilot</h1>
+          <p className="text-xs text-slate-500 mt-1">Conversational AI assistant trained on GHG Protocol, ISO 50001, and commercial energy engineering.</p>
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex items-center p-1 rounded-xl bg-slate-950 border border-slate-800 shrink-0">
-          <button
-            onClick={() => setActiveTab('audit')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-              activeTab === 'audit'
-                ? 'bg-eco-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white'
-            }`}
-          >
-            AI Decarbonization Audit
-          </button>
+        <div className="flex items-center p-1 rounded-2xl bg-slate-100 border border-slate-200 shrink-0">
           <button
             onClick={() => setActiveTab('chat')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all ${
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all ${
               activeTab === 'chat'
-                ? 'bg-eco-500 text-slate-950 shadow-md'
-                : 'text-slate-400 hover:text-white'
+                ? 'bg-white text-emerald-700 shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
-            Interactive Eco-Chat
+            Interactive Copilot
+          </button>
+          <button
+            onClick={() => setActiveTab('audit')}
+            className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all ${
+              activeTab === 'audit'
+                ? 'bg-white text-emerald-700 shadow-2xs'
+                : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Facility Audit Tool
           </button>
         </div>
       </div>
 
-      {activeTab === 'audit' ? (
+      {activeTab === 'chat' ? (
+        /* 💬 OpenAI / Perplexity Style Copilot Chat Layout */
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-[720px]">
+          
+          {/* Left History Sidebar (3 columns) */}
+          <div className="hidden lg:flex lg:col-span-3 glass-card-light p-4 rounded-3xl border border-slate-200/80 flex-col justify-between shadow-glass">
+            <div className="space-y-4">
+              <button
+                onClick={() => {
+                  setMessages([{
+                    id: Date.now().toString(),
+                    sender: 'ai',
+                    text: "Hello! How can I assist with your decarbonization strategy or Scope 1-3 accounting today?",
+                    time: 'Just now'
+                  }]);
+                }}
+                className="w-full py-2.5 px-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center space-x-2"
+              >
+                <Plus className="w-4 h-4 stroke-[3]" />
+                <span>New AI Session</span>
+              </button>
+
+              <div className="space-y-1">
+                <div className="px-2 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  Recent Conversations
+                </div>
+                {conversations.map(conv => (
+                  <button
+                    key={conv.id}
+                    onClick={() => setActiveConvId(conv.id)}
+                    className={`w-full text-left px-3 py-2.5 rounded-2xl text-xs font-bold transition-all flex items-center justify-between group ${
+                      activeConvId === conv.id
+                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                        : 'text-slate-600 hover:bg-slate-100'
+                    }`}
+                  >
+                    <span className="truncate">{conv.title}</span>
+                    <span className="text-[10px] text-slate-400 font-normal shrink-0">{conv.date}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Model Selector Card */}
+            <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+              <div className="flex items-center space-x-2 text-emerald-700 font-bold text-xs">
+                <Cpu className="w-4 h-4" />
+                <span>Gemini 1.5 Pro</span>
+              </div>
+              <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                High-reasoning model optimized for energy engineering calculations.
+              </p>
+            </div>
+          </div>
+
+          {/* Right Main Chat Canvas (9 columns) */}
+          <div className="lg:col-span-9 glass-card-light rounded-3xl border border-slate-200/80 flex flex-col h-full overflow-hidden shadow-glass">
+            
+            {/* Messages Area */}
+            <div className="flex-1 p-6 overflow-y-auto space-y-6 bg-[#F7F9FC]">
+              
+              {/* OpenAI Style Quick Suggestions Grid (Show if 1 message) */}
+              {messages.length === 1 && (
+                <div className="space-y-4 pt-4 max-w-3xl mx-auto">
+                  <div className="text-center space-y-1">
+                    <h3 className="text-lg font-black text-slate-900">Where would you like to start?</h3>
+                    <p className="text-xs text-slate-500 font-medium">Select a suggested prompt or type your query below.</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    {quickPrompts.map((item, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => handleSendMessage(item.prompt)}
+                        className="p-4 rounded-3xl bg-white border border-slate-200/80 shadow-subtle hover:shadow-glass hover:border-emerald-300 transition-all text-left space-y-1 group"
+                      >
+                        <span className="font-extrabold text-xs text-slate-900 group-hover:text-emerald-600 transition-colors block">
+                          {item.title}
+                        </span>
+                        <p className="text-[11px] text-slate-500 font-medium line-clamp-2">
+                          "{item.prompt}"
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Chat Messages Stream */}
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+                >
+                  <div className={`max-w-3xl space-y-2 ${msg.sender === 'user' ? 'items-end' : 'items-start'}`}>
+                    
+                    {/* Sender Header */}
+                    <div className={`flex items-center space-x-2 text-[10px] font-bold text-slate-400 px-1 ${
+                      msg.sender === 'user' ? 'justify-end' : 'justify-start'
+                    }`}>
+                      {msg.sender === 'ai' ? (
+                        <>
+                          <div className="w-5 h-5 rounded-full bg-emerald-600 text-white flex items-center justify-center">
+                            <Sparkles className="w-3 h-3" />
+                          </div>
+                          <span className="font-extrabold text-slate-800">EcoMetrics Copilot</span>
+                        </>
+                      ) : (
+                        <span>You • {msg.time}</span>
+                      )}
+                    </div>
+
+                    {/* Chat Bubble */}
+                    <div
+                      className={`p-5 rounded-3xl text-xs leading-relaxed transition-all ${
+                        msg.sender === 'user'
+                          ? 'bg-emerald-600 text-white rounded-tr-none shadow-md font-medium'
+                          : 'bg-white border border-slate-200/90 text-slate-900 rounded-tl-none shadow-subtle space-y-3'
+                      }`}
+                    >
+                      <div className="whitespace-pre-wrap font-sans">{msg.text}</div>
+
+                      {/* Inline Interactive Recharts Chart inside Copilot Bubble */}
+                      {msg.hasChart && (
+                        <div className="mt-3 p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                          <span className="text-[11px] font-extrabold text-slate-900 block">
+                            📈 Project Emissions Baseline vs HVAC Optimized (t CO2e)
+                          </span>
+                          <div className="h-44 w-full pt-1">
+                            <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart data={INLINE_CHART_DATA} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+                                <XAxis dataKey="month" stroke="#94A3B8" fontSize={10} tickLine={false} />
+                                <YAxis stroke="#94A3B8" fontSize={10} tickLine={false} />
+                                <Tooltip contentStyle={{ backgroundColor: '#FFFFFF', borderRadius: '12px', fontSize: '11px' }} />
+                                <Area type="monotone" dataKey="baseline" name="Baseline" stroke="#94A3B8" fill="#E2E8F0" />
+                                <Area type="monotone" dataKey="optimized" name="HVAC Optimized" stroke="#22C55E" fill="#DCFCE7" />
+                              </AreaChart>
+                            </ResponsiveContainer>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Copy Action Button */}
+                      {msg.sender === 'ai' && (
+                        <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[10px] text-slate-400">
+                          <span>Verified ISO 50001 Guidelines</span>
+                          <button
+                            onClick={() => handleCopy(msg.text, msg.id)}
+                            className="flex items-center space-x-1 text-slate-500 hover:text-emerald-600 transition-colors font-bold"
+                          >
+                            {copiedId === msg.id ? <Check className="w-3 h-3 text-emerald-600" /> : <Copy className="w-3 h-3" />}
+                            <span>{copiedId === msg.id ? 'Copied' : 'Copy'}</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {/* Typing Animation Indicator */}
+              {chatLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-white border border-slate-200 p-4 rounded-3xl text-xs text-slate-600 flex items-center space-x-3 shadow-subtle">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce"></div>
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.2s]"></div>
+                      <div className="w-2 h-2 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.4s]"></div>
+                    </div>
+                    <span className="font-semibold text-slate-700">Copilot is analyzing telemetry...</span>
+                  </div>
+                </div>
+              )}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input Capsule Bar */}
+            <div className="p-4 bg-white border-t border-slate-200 space-y-2">
+              
+              {/* Attached File Chip Badge */}
+              {attachedFile && (
+                <div className="flex items-center space-x-2 px-3 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold w-fit">
+                  <Paperclip className="w-3.5 h-3.5" />
+                  <span>{attachedFile.name}</span>
+                  <button onClick={() => setAttachedFile(null)} className="text-slate-400 hover:text-rose-600">×</button>
+                </div>
+              )}
+
+              <form
+                onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
+                className="flex items-center space-x-2 bg-slate-50 border border-slate-200/90 rounded-3xl p-1.5 focus-within:ring-2 focus-within:ring-emerald-500/30 focus-within:border-emerald-500 transition-all shadow-subtle"
+              >
+                {/* File Upload Button */}
+                <label className="p-2 rounded-full hover:bg-slate-200/80 text-slate-500 transition-colors cursor-pointer" title="Attach CSV or Report">
+                  <Paperclip className="w-4 h-4" />
+                  <input type="file" onChange={handleFileUpload} className="hidden" accept=".csv,.json,.pdf,.txt" />
+                </label>
+
+                {/* Voice Microphone Button */}
+                <button
+                  type="button"
+                  onClick={toggleVoiceInput}
+                  className={`p-2 rounded-full transition-colors ${
+                    isRecording ? 'bg-rose-100 text-rose-600 animate-pulse' : 'hover:bg-slate-200/80 text-slate-500'
+                  }`}
+                  title={isRecording ? 'Listening...' : 'Voice Input'}
+                >
+                  <Mic className="w-4 h-4" />
+                </button>
+
+                {/* Main Text Area Input */}
+                <input
+                  type="text"
+                  placeholder="Message EcoMetrics Copilot..."
+                  value={inputMessage}
+                  onChange={(e) => setInputMessage(e.target.value)}
+                  className="flex-1 bg-transparent border-none text-xs font-semibold text-slate-900 focus:outline-none px-2"
+                />
+
+                {/* Send CTA Button */}
+                <button
+                  type="submit"
+                  disabled={chatLoading}
+                  className="p-2.5 rounded-full bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold transition-all shadow-md shadow-emerald-500/20 disabled:opacity-50"
+                >
+                  <Send className="w-4 h-4 stroke-[2.5]" />
+                </button>
+              </form>
+
+              <div className="text-[10px] text-center text-slate-400 font-medium pt-1">
+                EcoMetrics Copilot can make mistakes. Verify critical CapEx & GHG accounting metrics.
+              </div>
+            </div>
+
+          </div>
+        </div>
+      ) : (
+        /* Facility Audit Tool View */
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Audit Input Form */}
-          <div className="glass-card p-6 rounded-2xl border border-slate-800 space-y-4">
-            <h3 className="font-bold text-base text-white flex items-center gap-2">
-              <Zap className="w-5 h-5 text-eco-400" /> Audit Parameters
+          <div className="glass-card-light p-6 rounded-3xl border border-slate-200/80 space-y-4 shadow-glass">
+            <h3 className="font-extrabold text-base text-slate-900 flex items-center gap-2">
+              <Zap className="w-5 h-5 text-emerald-600" /> Facility Audit Parameters
             </h3>
 
-            <form onSubmit={handleGenerateAudit} className="space-y-4">
+            <form onSubmit={handleGenerateAudit} className="space-y-4 text-xs">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Resource Category</label>
+                <label className="block font-bold text-slate-700 mb-1.5">Resource Category</label>
                 <select
                   value={category}
                   onChange={(e) => {
@@ -225,7 +580,7 @@ export default function AISustainabilityAdvisor() {
                     if (e.target.value === 'Natural Gas') { setScope('Scope 1'); setUnit('Therms'); }
                     if (e.target.value === 'Water') { setScope('Scope 3'); setUnit('Liters'); }
                   }}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-xs text-white focus:border-eco-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2.5 font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-emerald-500/30"
                 >
                   <option value="Electricity">Electricity (HVAC & Lighting)</option>
                   <option value="Natural Gas">Natural Gas (Boilers)</option>
@@ -235,151 +590,64 @@ export default function AISustainabilityAdvisor() {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Monthly Usage</label>
+                  <label className="block font-bold text-slate-700 mb-1.5">Monthly Usage</label>
                   <input
                     type="number"
                     value={currentUsage}
                     onChange={(e) => setCurrentUsage(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:border-eco-500"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2 font-semibold text-slate-900 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 mb-1">Unit</label>
+                  <label className="block font-bold text-slate-700 mb-1.5">Unit</label>
                   <input
                     type="text"
                     value={unit}
                     readOnly
-                    className="w-full bg-slate-950/60 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-slate-400"
+                    className="w-full bg-slate-100 border border-slate-200 rounded-2xl px-3.5 py-2 font-semibold text-slate-500 cursor-not-allowed"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Facility Area (sq ft)</label>
+                <label className="block font-bold text-slate-700 mb-1.5">Facility Area (sq ft)</label>
                 <input
                   type="number"
                   value={buildingAreaSqFt}
                   onChange={(e) => setBuildingAreaSqFt(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:border-eco-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">Renewable Energy Adoption (%)</label>
-                <input
-                  type="number"
-                  value={renewablePct}
-                  onChange={(e) => setRenewablePct(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-xs text-white focus:border-eco-500"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-2xl px-3.5 py-2 font-semibold text-slate-900 focus:outline-none"
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={auditLoading}
-                className="w-full py-3 rounded-xl bg-eco-500 hover:bg-eco-400 text-slate-950 font-bold text-xs transition-all shadow-lg shadow-eco-500/20 flex items-center justify-center space-x-2"
+                className="w-full py-3 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold transition-all shadow-md shadow-emerald-500/20"
               >
-                <Sparkles className="w-4 h-4" />
-                <span>{auditLoading ? 'Analyzing via Gemini AI...' : 'Generate Decarbonization Plan'}</span>
+                {auditLoading ? 'Compiling Audit...' : 'Generate Decarbonization Plan'}
               </button>
             </form>
           </div>
 
-          {/* Audit Output View */}
-          <div className="lg:col-span-2 glass-card p-6 rounded-2xl border border-slate-800 flex flex-col justify-between">
+          <div className="lg:col-span-2 glass-card-light p-6 rounded-3xl border border-slate-200/80 flex flex-col justify-between shadow-glass">
             <div>
-              <h3 className="font-bold text-base text-white mb-3 flex items-center gap-2">
-                <FileText className="w-5 h-5 text-eco-400" /> AI Decarbonization Strategy Output
+              <h3 className="font-extrabold text-base text-slate-900 mb-3 flex items-center gap-2">
+                <FileText className="w-5 h-5 text-emerald-600" /> AI Decarbonization Output Roadmap
               </h3>
-
-              {auditLoading ? (
-                <div className="flex flex-col items-center justify-center py-20 space-y-3">
-                  <div className="w-10 h-10 border-4 border-eco-500 border-t-transparent rounded-full animate-spin"></div>
-                  <p className="text-xs font-semibold text-slate-400">Gemini AI is generating your decarbonization roadmap...</p>
-                </div>
-              ) : auditResult ? (
-                <div className="prose prose-invert max-w-none text-xs text-slate-300 leading-relaxed whitespace-pre-wrap font-sans bg-slate-950/80 p-5 rounded-xl border border-slate-800 max-h-[500px] overflow-y-auto">
+              {auditResult ? (
+                <div className="prose max-w-none text-xs text-slate-100 font-mono bg-slate-900 p-5 rounded-2xl leading-relaxed whitespace-pre-wrap max-h-[500px] overflow-y-auto">
                   {auditResult}
                 </div>
               ) : (
-                <div className="border-2 border-dashed border-slate-800 rounded-2xl p-12 text-center text-slate-500 space-y-3">
-                  <Bot className="w-12 h-12 mx-auto text-slate-700" />
-                  <p className="text-xs">Fill in your facility operational parameters on the left and click <strong>Generate Decarbonization Plan</strong>.</p>
+                <div className="border-2 border-dashed border-slate-200 rounded-3xl p-12 text-center text-slate-400 space-y-3 bg-white">
+                  <Bot className="w-12 h-12 mx-auto text-emerald-500" />
+                  <p className="text-xs font-medium text-slate-500">
+                    Fill in your facility parameters on the left to compile an audit report.
+                  </p>
                 </div>
               )}
             </div>
           </div>
-        </div>
-      ) : (
-        /* Interactive Eco-Chat Console */
-        <div className="glass-card rounded-2xl border border-slate-800 flex flex-col h-[650px] overflow-hidden">
-          {/* Quick Prompt Chips */}
-          <div className="p-4 bg-slate-900/80 border-b border-slate-800 flex items-center gap-2 overflow-x-auto">
-            <span className="text-[11px] font-bold text-slate-500 uppercase shrink-0">Quick Prompts:</span>
-            {quickPrompts.map((prompt, idx) => (
-              <button
-                key={idx}
-                onClick={() => handleSendMessage(prompt)}
-                className="px-3 py-1 rounded-full bg-slate-800 hover:bg-slate-750 text-slate-300 text-xs font-medium shrink-0 border border-slate-700 transition-all hover:border-eco-500/40"
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
-
-          {/* Messages Stream */}
-          <div className="flex-1 p-6 overflow-y-auto space-y-4">
-            {messages.map((msg, idx) => (
-              <div
-                key={idx}
-                className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
-              >
-                <div
-                  className={`max-w-2xl p-4 rounded-2xl text-xs leading-relaxed ${
-                    msg.sender === 'user'
-                      ? 'bg-eco-600 text-white rounded-br-none'
-                      : 'bg-slate-900 border border-slate-800 text-slate-200 rounded-bl-none shadow-md'
-                  }`}
-                >
-                  <div className="font-bold text-[10px] uppercase opacity-75 mb-1 flex items-center gap-1">
-                    {msg.sender === 'user' ? 'Facility Manager' : 'EcoMetrics AI Advisor'}
-                  </div>
-                  <div className="whitespace-pre-wrap">{msg.text}</div>
-                </div>
-              </div>
-            ))}
-
-            {chatLoading && (
-              <div className="flex justify-start">
-                <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl text-xs text-slate-400 flex items-center space-x-2">
-                  <div className="w-2 h-2 rounded-full bg-eco-400 animate-ping"></div>
-                  <span>EcoMetrics Gemini AI is thinking...</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Chat Input Bar */}
-          <form
-            onSubmit={(e) => { e.preventDefault(); handleSendMessage(); }}
-            className="p-4 bg-slate-900/90 border-t border-slate-800 flex items-center space-x-3"
-          >
-            <input
-              type="text"
-              placeholder="Ask any sustainability, energy engineering, or ESG compliance question..."
-              value={inputMessage}
-              onChange={(e) => setInputMessage(e.target.value)}
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-xs text-white focus:outline-none focus:border-eco-500"
-            />
-            <button
-              type="submit"
-              disabled={chatLoading}
-              className="px-5 py-3 rounded-xl bg-eco-500 hover:bg-eco-400 text-slate-950 font-bold text-xs transition-all shadow-lg shadow-eco-500/20 flex items-center space-x-1 disabled:opacity-50"
-            >
-              <span>Send</span>
-              <Send className="w-3.5 h-3.5" />
-            </button>
-          </form>
         </div>
       )}
     </div>
