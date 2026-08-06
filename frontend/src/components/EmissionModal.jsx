@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, PlusCircle, Calendar, Tag, Hash, FileText } from 'lucide-react';
 import api from '../services/api';
+import { saveCustomLog } from '../utils/emissionsStorage';
 
 export default function EmissionModal({ isOpen, onClose, onRefresh }) {
   const [category, setCategory] = useState('Electricity');
@@ -36,6 +37,16 @@ export default function EmissionModal({ isOpen, onClose, onRefresh }) {
     }
 
     setLoading(true);
+
+    // Always save locally so the dashboard and tables update immediately!
+    saveCustomLog({
+      category,
+      quantity: Number(quantity),
+      unit,
+      date,
+      notes
+    });
+
     try {
       await api.post('/emissions/logs', {
         category,
@@ -45,7 +56,7 @@ export default function EmissionModal({ isOpen, onClose, onRefresh }) {
         notes
       });
     } catch (err) {
-      console.warn('Network call error in modal, continuing to refresh view:', err);
+      console.warn('Network call error in modal, updated local storage state:', err);
     } finally {
       if (onRefresh) onRefresh();
       if (onClose) onClose();
