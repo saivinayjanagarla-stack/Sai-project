@@ -17,6 +17,17 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Middleware to ensure DB is initialized
+app.use(async (req, res, next) => {
+  try {
+    await getDB();
+    next();
+  } catch (err) {
+    console.error('Database initialization error:', err);
+    next(err);
+  }
+});
+
 // Routes
 const authRoutes = require('./routes/authRoutes');
 const emissionsRoutes = require('./routes/emissionsRoutes');
@@ -62,16 +73,18 @@ app.use((err, req, res, next) => {
   res.status(500).json({ message: 'Internal Server Error', error: err.message });
 });
 
-// Initialize DB and start server
-getDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`=================================================`);
-    console.log(`🚀 EcoMetrics AI Server running on port ${PORT}`);
-    console.log(`🌿 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`=================================================`);
+// Start local standalone server if run directly
+if (require.main === module) {
+  getDB().then(() => {
+    app.listen(PORT, () => {
+      console.log(`=================================================`);
+      console.log(`🚀 EcoMetrics AI Server running on port ${PORT}`);
+      console.log(`🌿 Environment: ${process.env.NODE_ENV || 'development'}`);
+      console.log(`=================================================`);
+    });
+  }).catch(err => {
+    console.error('Failed to start server:', err);
   });
-}).catch(err => {
-  console.error('Failed to start server:', err);
-});
+}
 
 module.exports = app;
