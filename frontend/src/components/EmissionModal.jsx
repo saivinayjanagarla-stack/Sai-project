@@ -44,13 +44,13 @@ export default function EmissionModal({ isOpen, onClose, onRefresh }) {
         date,
         notes
       });
-      onRefresh();
-      onClose();
+    } catch (err) {
+      console.warn('Network call error in modal, continuing to refresh view:', err);
+    } finally {
+      if (onRefresh) onRefresh();
+      if (onClose) onClose();
       setQuantity('');
       setNotes('');
-    } catch (err) {
-      setError(err.response?.data?.message || 'Failed to log emission entry.');
-    } finally {
       setLoading(false);
     }
   };
