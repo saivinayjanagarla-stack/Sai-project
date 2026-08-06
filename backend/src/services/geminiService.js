@@ -10,7 +10,7 @@ async function callGeminiAPI(prompt, systemInstruction = '') {
     try {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({
-        model: 'gemini-1.5-flash',
+        model: 'gemini-2.0-flash',
         systemInstruction: systemInstruction || "You are EcoMetrics AI, a world-class expert in Environmental Engineering, GHG Protocol Accounting (Scope 1, 2, 3), ISO 50001 Energy Management, and ESG Decarbonization Strategy."
       });
       const result = await model.generateContent(prompt);
