@@ -3,33 +3,21 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, PieChart, 
 import { Flame, Zap, Droplets, Recycle, AlertTriangle, Sparkles, Plus, TrendingDown, ArrowUpRight, Award, ShieldCheck } from 'lucide-react';
 import api from '../services/api';
 import EmissionModal from '../components/EmissionModal';
+import { getCombinedLogs, calculateMetricsFromLogs } from '../utils/emissionsStorage';
 
-const DEFAULT_SUMMARY = {
-  total_co2e_tonnes: 102.29,
-  scope1_tonnes: 25.18,
-  scope2_tonnes: 74.5,
-  scope3_tonnes: 2.62,
-  total_energy_kwh: 193500,
-  total_water_liters: 430000,
-  renewable_pct: 38.5,
-  waste_diversion_pct: 74.2,
-  esg_compliance_score: 88
-};
-
-const DEFAULT_MONTHLY_TREND = [
-  { date: '2026-03-01', scope1_tonnes: 9.54, scope2_tonnes: 17.32, scope3_tonnes: 0, total_tonnes: 26.86 },
-  { date: '2026-04-01', scope1_tonnes: 7.42, scope2_tonnes: 16.17, scope3_tonnes: 0, total_tonnes: 23.59 },
-  { date: '2026-05-01', scope1_tonnes: 4.77, scope2_tonnes: 14.82, scope3_tonnes: 0.29, total_tonnes: 19.88 },
-  { date: '2026-06-01', scope1_tonnes: 3.44, scope2_tonnes: 13.47, scope3_tonnes: 0.23, total_tonnes: 17.15 },
-  { date: '2026-06-15', scope1_tonnes: 0, scope2_tonnes: 0, scope3_tonnes: 2.1, total_tonnes: 2.1 },
-  { date: '2026-07-01', scope1_tonnes: 0, scope2_tonnes: 12.71, scope3_tonnes: 0, total_tonnes: 12.71 }
-];
-
-const DEFAULT_CATEGORY_BREAKDOWN = [
-  { category: 'Electricity', total_tonnes: 74.5 },
-  { category: 'Natural Gas', total_tonnes: 25.18 },
-  { category: 'Waste', total_tonnes: 2.1 },
-  { category: 'Water', total_tonnes: 0.52 }
+const BASE_LOGS = [
+  { id: 1, date: '2026-03-01', category: 'Electricity', scope: 'Scope 2', quantity: 45000, unit: 'kWh', co2e_kg: 17325, notes: 'HVAC cooling tower load peak' },
+  { id: 2, date: '2026-04-01', category: 'Electricity', scope: 'Scope 2', quantity: 42000, unit: 'kWh', co2e_kg: 16170, notes: 'Smart thermostat trial started' },
+  { id: 3, date: '2026-05-01', category: 'Electricity', scope: 'Scope 2', quantity: 38500, unit: 'kWh', co2e_kg: 14822, notes: 'Rooftop solar panel Phase 1 active' },
+  { id: 4, date: '2026-06-01', category: 'Electricity', scope: 'Scope 2', quantity: 35000, unit: 'kWh', co2e_kg: 13475, notes: 'LED lighting retrofit completed' },
+  { id: 5, date: '2026-07-01', category: 'Electricity', scope: 'Scope 2', quantity: 33000, unit: 'kWh', co2e_kg: 12705, notes: 'HVAC AI setback optimization active' },
+  { id: 6, date: '2026-03-01', category: 'Natural Gas', scope: 'Scope 1', quantity: 1800, unit: 'Therms', co2e_kg: 9540, notes: 'Winter boiler heating' },
+  { id: 7, date: '2026-04-01', category: 'Natural Gas', scope: 'Scope 1', quantity: 1400, unit: 'Therms', co2e_kg: 7420, notes: 'Spring heating baseline' },
+  { id: 8, date: '2026-05-01', category: 'Natural Gas', scope: 'Scope 1', quantity: 900, unit: 'Therms', co2e_kg: 4770, notes: 'Domestic hot water only' },
+  { id: 9, date: '2026-06-01', category: 'Natural Gas', scope: 'Scope 1', quantity: 650, unit: 'Therms', co2e_kg: 3445, notes: 'Heat pump boiler hybrid system' },
+  { id: 10, date: '2026-05-01', category: 'Water', scope: 'Scope 3', quantity: 240000, unit: 'Liters', co2e_kg: 288, notes: 'Irrigation & cooling tower' },
+  { id: 11, date: '2026-06-01', category: 'Water', scope: 'Scope 3', quantity: 190000, unit: 'Liters', co2e_kg: 228, notes: 'Greywater recycling online' },
+  { id: 12, date: '2026-06-15', category: 'Waste', scope: 'Scope 3', quantity: 4200, unit: 'Kg', co2e_kg: 2100, notes: 'General landfill waste stream' }
 ];
 
 const DEFAULT_ALERTS = [
@@ -39,23 +27,29 @@ const DEFAULT_ALERTS = [
 ];
 
 export default function Dashboard() {
-  const [summary, setSummary] = useState(DEFAULT_SUMMARY);
-  const [monthlyTrend, setMonthlyTrend] = useState(DEFAULT_MONTHLY_TREND);
-  const [categoryBreakdown, setCategoryBreakdown] = useState(DEFAULT_CATEGORY_BREAKDOWN);
+  const [summary, setSummary] = useState(null);
+  const [monthlyTrend, setMonthlyTrend] = useState([]);
+  const [categoryBreakdown, setCategoryBreakdown] = useState([]);
   const [alerts, setAlerts] = useState(DEFAULT_ALERTS);
-  const [loading, setLoading] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const fetchDashboardData = async () => {
+    let baseLogs = BASE_LOGS;
     try {
-      const res = await api.get('/emissions/summary');
-      if (res.data?.summary) setSummary(res.data.summary);
-      if (res.data?.monthlyTrend?.length) setMonthlyTrend(res.data.monthlyTrend);
-      if (res.data?.categoryBreakdown?.length) setCategoryBreakdown(res.data.categoryBreakdown);
-      if (res.data?.alerts?.length) setAlerts(res.data.alerts);
+      const res = await api.get('/emissions/logs');
+      if (res.data?.logs?.length) {
+        baseLogs = res.data.logs;
+      }
     } catch (err) {
-      console.warn('Dashboard using built-in metrics state:', err);
+      console.warn('Dashboard network request fallback, using combined storage logs:', err);
     }
+
+    const allLogs = getCombinedLogs(baseLogs);
+    const { summary: calcSummary, categoryBreakdown: calcCategories, monthlyTrend: calcTrend } = calculateMetricsFromLogs(allLogs);
+
+    setSummary(calcSummary);
+    setCategoryBreakdown(calcCategories);
+    setMonthlyTrend(calcTrend);
   };
 
   useEffect(() => {
@@ -99,7 +93,7 @@ export default function Dashboard() {
           </div>
           <div className="mt-3 flex items-baseline justify-between gap-1.5 flex-wrap min-w-0">
             <span className="text-2xl xl:text-3xl font-black text-white tracking-tight truncate max-w-full" title={summary?.total_co2e_tonnes}>
-              {summary?.total_co2e_tonnes}
+              {summary?.total_co2e_tonnes || 102.29}
             </span>
             <span className="text-xs font-medium text-slate-400 shrink-0">t CO2e / mo</span>
           </div>
@@ -119,12 +113,12 @@ export default function Dashboard() {
           </div>
           <div className="mt-3 flex items-baseline justify-between gap-1.5 flex-wrap min-w-0">
             <span className="text-2xl xl:text-3xl font-black text-white tracking-tight truncate max-w-full" title={summary?.total_energy_kwh?.toLocaleString()}>
-              {summary?.total_energy_kwh?.toLocaleString()}
+              {(summary?.total_energy_kwh || 193500).toLocaleString()}
             </span>
             <span className="text-xs font-medium text-slate-400 shrink-0">kWh</span>
           </div>
           <div className="mt-3 text-xs text-slate-400 truncate">
-            <span className="text-eco-400 font-semibold">{summary?.renewable_pct}%</span> Renewable Share (Solar PV)
+            <span className="text-eco-400 font-semibold">{summary?.renewable_pct || 38.5}%</span> Renewable Share (Solar PV)
           </div>
         </div>
 
@@ -138,7 +132,7 @@ export default function Dashboard() {
           </div>
           <div className="mt-3 flex items-baseline justify-between gap-1.5 flex-wrap min-w-0">
             <span className="text-2xl xl:text-3xl font-black text-white tracking-tight truncate max-w-full" title={summary?.total_water_liters?.toLocaleString()}>
-              {summary?.total_water_liters?.toLocaleString()}
+              {(summary?.total_water_liters || 430000).toLocaleString()}
             </span>
             <span className="text-xs font-medium text-slate-400 shrink-0">Liters</span>
           </div>
@@ -157,7 +151,7 @@ export default function Dashboard() {
           </div>
           <div className="mt-3 flex items-baseline justify-between gap-1.5 flex-wrap min-w-0">
             <span className="text-2xl xl:text-3xl font-black text-white tracking-tight truncate max-w-full">
-              {summary?.esg_compliance_score}
+              {summary?.esg_compliance_score || 88}
             </span>
             <span className="text-xs font-medium text-slate-400 shrink-0">/ 100</span>
           </div>
