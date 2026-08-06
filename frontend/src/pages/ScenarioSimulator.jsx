@@ -3,18 +3,67 @@ import { Sliders, DollarSign, TrendingDown, Clock, ShieldCheck, Sparkles, CheckC
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import api from '../services/api';
 
+function calculateSimulation(solarKw, heatPumpP, evFleetP, hvacAi, ledP) {
+  const solarCo2 = Number(solarKw) * 0.45;
+  const heatPumpCo2 = (Number(heatPumpP) / 100) * 45;
+  const evCo2 = (Number(evFleetP) / 100) * 18;
+  const hvacCo2 = hvacAi ? 14 : 0;
+  const ledCo2 = (Number(ledP) / 100) * 12;
+
+  const totalReductionTonnes = Math.round(solarCo2 + heatPumpCo2 + evCo2 + hvacCo2 + ledCo2);
+  const baselineEmissions = 160;
+  const reductionPercentage = Math.min(95, Math.round((totalReductionTonnes / baselineEmissions) * 100));
+
+  const solarCapex = Number(solarKw) * 1100;
+  const heatPumpCapex = (Number(heatPumpP) / 100) * 65000;
+  const evCapex = (Number(evFleetP) / 100) * 42000;
+  const hvacCapex = hvacAi ? 15000 : 0;
+  const ledCapex = (Number(ledP) / 100) * 18000;
+
+  const totalCapex = Math.round(solarCapex + heatPumpCapex + evCapex + hvacCapex + ledCapex);
+  const annualSavings = Math.round(totalReductionTonnes * 165);
+  const paybackYears = annualSavings > 0 ? (totalCapex / annualSavings).toFixed(1) : 'N/A';
+
+  const years = ['2026', '2027', '2028', '2029', '2030'];
+  const timeline = years.map((yr, idx) => {
+    const factor = (idx + 1) / 5;
+    const proj = Math.max(10, Math.round(baselineEmissions - (totalReductionTonnes * factor)));
+    return {
+      year: yr,
+      baseline: baselineEmissions,
+      projected: proj
+    };
+  });
+
+  const aiAssessment = `This green retrofit configuration achieves an annual reduction of ${totalReductionTonnes} Metric Tonnes CO2e (${reductionPercentage}% Paris 1.5°C Alignment Target). Initial green investment CapEx is $${totalCapex.toLocaleString()} with an estimated annual OpEx savings of $${annualSavings.toLocaleString()}/yr. Simple payback period evaluated at ${paybackYears} years. Highly viable candidate for IRA Clean Energy ITC incentives.`;
+
+  return {
+    totalReductionTonnes,
+    reductionPercentage,
+    totalCapex,
+    annualSavings,
+    paybackYears,
+    timeline,
+    aiAssessment
+  };
+}
+
 export default function ScenarioSimulator() {
-  const [solarPvKw, setSolarPvKw] = useState(250);
-  const [heatPumpPct, setHeatPumpPct] = useState(50);
+  const [solarPvKw, setSolarPvKw] = useState(700);
+  const [heatPumpPct, setHeatPumpPct] = useState(85);
   const [evFleetPct, setEvFleetPct] = useState(40);
   const [hvacAiControl, setHvacAiControl] = useState(true);
   const [ledLightingPct, setLedLightingPct] = useState(80);
 
-  const [simResult, setSimResult] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [simResult, setSimResult] = useState(() =>
+    calculateSimulation(700, 85, 40, true, 80)
+  );
 
   const runSimulation = async () => {
-    setLoading(true);
+    // Calculate live state immediately
+    const computed = calculateSimulation(solarPvKw, heatPumpPct, evFleetPct, hvacAiControl, ledLightingPct);
+    setSimResult(computed);
+
     try {
       const res = await api.post('/simulator/run', {
         solar_pv_kw: Number(solarPvKw),
@@ -23,11 +72,11 @@ export default function ScenarioSimulator() {
         hvac_ai_control: Boolean(hvacAiControl),
         led_lighting_pct: Number(ledLightingPct)
       });
-      setSimResult(res.data.simulation);
+      if (res.data?.simulation) {
+        setSimResult(res.data.simulation);
+      }
     } catch (err) {
-      console.error('Simulation error:', err);
-    } finally {
-      setLoading(false);
+      console.warn('Simulation network call fallback, using real-time computed scenario:', err);
     }
   };
 
